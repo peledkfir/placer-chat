@@ -2,37 +2,24 @@
   <v-container>
     <v-row no-gutters justify="center">
       <v-col cols="11" md="7" v-for="(message, i) in messages" :key="i" :class="{ 'offset-1': isMe(message) }">
-        <v-card class="mb-3" :class="{ 'green lighten-5': isMe(message) }">
-          <v-card-title class="subtitle-1 font-weight-bold" :class="{ 'justify-end': isMe(message) }">
-            <v-avatar size="35" class="mr-3" v-if="!isMe(message)">
-              <v-img :src="`https://robohash.org/${message.author}?set=set4&size=60x60`"></v-img>
-            </v-avatar>
-            {{ message.author }}
-            <v-avatar size="35" class="ml-3" v-if="isMe(message)">
-              <v-img :src="`https://robohash.org/${message.author}?set=set4&size=60x60`"></v-img>
-            </v-avatar>
-          </v-card-title>
-          <v-card-text class="font-weight-light">
-            {{ message.text }}
-          </v-card-text>
-          <v-card-subtitle>
-            <small class="grey--text lighten-2">
-              <v-icon :small="true">access_time</v-icon>
-              <!-- currently it won't update periodically -->
-              {{ message.time | moment("from") }}
-            </small>
-          </v-card-subtitle>
-        </v-card>
+        <message-view v-if="message.author" :message="message"></message-view>
+        <div class="mb-3" v-else>
+          {{ nickName(message.id) }} {{ $t(message.status === "online" ? "connected" : "disconnected") }}
+          <small>{{ new Date(message.time) | moment("LT") }}</small>
+        </div>
       </v-col>
     </v-row>
     <v-row no-gutters justify="center">
       <v-col cols="11" md="7" class="ml-10">
         <v-form ref="form" @submit.prevent="sendMessage">
-          <v-layout>
-            <v-text-field v-model="newMessageText" :placeholder="$t('messageinput.placeholder')">
-              <v-btn slot="append" icon><v-icon>send</v-icon></v-btn>
-            </v-text-field>
-          </v-layout>
+          <v-text-field v-model="localMe" :label="$t('userLabel')" @input="nicknameChange()"></v-text-field>
+          <v-text-field
+            v-model="newMessageText"
+            :placeholder="$t('messageinput.placeholder')"
+            @keyup.enter="sendMessage"
+          >
+            <v-btn @click.prevent="submit" slot="append" icon><v-icon>send</v-icon></v-btn>
+          </v-text-field>
         </v-form>
       </v-col>
     </v-row>
@@ -41,33 +28,70 @@
 
 <script lang="ts">
 import Vue from "vue";
-import Component from "vue-class-component";
+import { Component, Watch } from "vue-property-decorator";
+import * as _ from "lodash";
+import MessageView from "./MessageView.vue";
 
-@Component
+@Component({
+  components: {
+    MessageView
+  }
+})
 export default class ChatView extends Vue {
   created() {
+    this.$store.dispatch("bindOnlineStatsRef");
+    this.$store.dispatch("bindUsersRef");
     this.$store.dispatch("bindMessagesRef");
   }
 
-  private me = "Arthur Shelbi";
   private newMessageText = "";
+  private localMe = "";
+
+  get me() {
+    return this.$store.getters.me;
+  }
 
   get messages() {
     return this.$store.getters.messages;
   }
 
+  get nickName(): (id: string) => string {
+    return (id: string) => {
+      const user = this.$store.getters.users[id];
+      return user ? user.name : `Anonymous-${id.substring(0, 5)}`;
+    };
+  }
+
+  nicknameChange = _.debounce(() => {
+    this.updateName();
+  }, 3000);
+
+  updateName() {
+    this.$store.dispatch("updateName", this.localMe);
+  }
+
   isMe(message: any) {
-    return message && message.author === this.me;
+    return message && message.author === this.me.id;
   }
 
   sendMessage() {
     this.$store.dispatch("sendMessage", {
-      author: this.me,
-      time: new Date().getTime(),
       text: this.newMessageText
     });
 
     this.newMessageText = "";
+  }
+
+  updated() {
+    const formEl = (this.$refs.form as Vue).$el;
+    formEl.scrollIntoView();
+  }
+
+  @Watch("me", { deep: true })
+  onPropertyChanged(value: any) {
+    if (value && value.name !== this.localMe && !this.localMe) {
+      this.localMe = value.name;
+    }
   }
 }
 </script>

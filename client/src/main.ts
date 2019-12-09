@@ -7,6 +7,7 @@ import AppView from './AppView.vue';
 import i18n from './i18n';
 import router from './router';
 import store from './store';
+import trackPresence from './presence';
 
 Vue.config.productionTip = false
 
@@ -24,8 +25,15 @@ firebase.initializeApp(config);
 // Bootstrap
 let app: Vue | null = null;
 
+firebase.auth().signInAnonymously().then(() => {
+  if (app) {
+    app.$store.dispatch("bindMeRef");
+  }
+});
 firebase.auth().onAuthStateChanged((user) => {
   if (!app) {
+    trackPresence();
+
     app = new Vue({
       i18n,
       router,
@@ -33,6 +41,8 @@ firebase.auth().onAuthStateChanged((user) => {
       vuetify,
       render: h => h(AppView)
     }).$mount('#app');
+  } else if (user) {
+    app.$store.dispatch("bindMeRef");
   }
 });
 

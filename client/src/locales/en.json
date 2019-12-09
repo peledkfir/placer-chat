@@ -1,4 +1,5 @@
 {
+    "userLabel": "Nickname",
     "messageinput": {
         "placeholder": "Type a message"
     }
