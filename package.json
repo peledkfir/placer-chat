@@ -1,0 +1,8 @@
+{
+  "name": "placer-chat",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Kfir Peled <peledkfir@gmail.com>",
+  "main": "index.js",
+  "license": "MIT"
+}
