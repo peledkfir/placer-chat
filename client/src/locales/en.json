@@ -1,3 +1,5 @@
 {
-    
+    "messageinput": {
+        "placeholder": "Type a message"
+    }
 }

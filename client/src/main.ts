@@ -1,11 +1,12 @@
 import * as firebase from 'firebase/app';
-import Vue from 'vue'
+import 'firebase/auth';
+import Vue from 'vue';
 import './plugins/moment';
 import vuetify from '@/plugins/vuetify';
-import AppView from './AppView.vue'
+import AppView from './AppView.vue';
 import i18n from './i18n';
-import router from './router'
-import store from './store'
+import router from './router';
+import store from './store';
 
 Vue.config.productionTip = false
 
@@ -20,11 +21,18 @@ const config = {
 };
 firebase.initializeApp(config);
 
-new Vue({
-  i18n,
-  router,
-  store,
-  vuetify,
-  render: h => h(AppView)
-}).$mount('#app')
+// Bootstrap
+let app: Vue | null = null;
+
+firebase.auth().onAuthStateChanged((user) => {
+  if (!app) {
+    app = new Vue({
+      i18n,
+      router,
+      store,
+      vuetify,
+      render: h => h(AppView)
+    }).$mount('#app');
+  }
+});
 
